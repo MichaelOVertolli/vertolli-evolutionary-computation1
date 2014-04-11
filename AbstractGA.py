@@ -24,7 +24,7 @@ Classes:
 AbstractGA() -- abstract class of genetic algorithm functions for population
 creation, member/chromosome selection, mutation, and crossover
 NoEdge() -- exception class that indicates that all the edge options have
-been exhausted for a given node
+been exhausted for a given allele in edge recombination function
 """
 
 from copy import deepcopy
