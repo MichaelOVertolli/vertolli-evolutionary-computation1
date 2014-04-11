@@ -21,8 +21,8 @@ genetic algorithms. Despite the inclusion of implementations, the class is
 abstract in the sense that it is designed to be inherited NOT instantiated.
 
 Classes:
-AbstractGA -- abstract class of genetic algorithm functions for population
-creation, member/chromosome selection, mutation, and crossover.
+AbstractGA() -- abstract class of genetic algorithm functions for population
+creation, member/chromosome selection, mutation, and crossover
 NoEdge() -- exception class that indicates that all the edge options have
 been exhausted for a given node
 """
@@ -40,8 +40,8 @@ from random import random
 class AbstractGA(object):
     """An inheritable class with generic versions of all GA functions learned.
 
-    Designed to be inherited by a class that implements a representation for a
-    particular GA solvable problem.
+    Designed to be inherited by a class that implements a GA structure and a
+    representation for a particular GA solvable problem.
 
     Public Methods:
     genPop(size, num, max_, min_)
