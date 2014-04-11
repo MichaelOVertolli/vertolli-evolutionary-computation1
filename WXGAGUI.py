@@ -1,3 +1,37 @@
+###############################################################################
+#Copyright (C) 2013  Michael O. Vertolli michaelvertolli@gmail.com
+#
+#This program is free software: you can redistribute it and/or modify
+#it under the terms of the GNU General Public License as published by
+#the Free Software Foundation, either version 3 of the License, or
+#(at your option) any later version.
+#
+#This program is distributed in the hope that it will be useful,
+#but WITHOUT ANY WARRANTY; without even the implied warranty of
+#MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#GNU General Public License for more details.
+#
+#You should have received a copy of the GNU General Public License
+#along with this program.  If not, see http://www.gnu.org/licenses/
+###############################################################################
+
+"""
+This is a hack job of a GUI setup that was designed to be convenient for showing
+each of the GA problems quickly. It is not thoroughly implemented as the GUI was
+not a requirement of the project nor was the threading setup.
+
+Classes:
+GAThread(size, tSize, mProb, cProb, tProb, rProb, elite, k,
+         dir_, gens, adaptiveMod, file_, question, selFunction,
+         mutFunction, crossFunction, query)
+         -- modified thread class for the underlying GA processing
+WXGAGUI(parent, title) -- base frame for GUI
+UI(parent) -- panel for interface
+TSPScreen(parent) -- scrolling text window for display text
+TSPCanvas(parent) -- panel for drawing the TSP graphic on a canvas
+MyApp() -- main function that runs the entire program
+"""
+
 import operator
 import os
 import string
@@ -13,9 +47,39 @@ from wx.lib.pubsub import Publisher
 
 
 class GAThread(Thread):
+  """Modified thread class for the underlying GA processing.
+
+  Uses Publisher to communicate between GUI and itself.
+
+  Public Methods:
+  None
+
+  """
   def __init__(self, size, tSize, mProb, cProb, tProb, rProb, elite, k,
                dir_, gens, adaptiveMod, file_, question, selFunction,
                mutFunction, crossFunction, query):
+    """Sets up all the relevant properties for a particular GA problem.
+
+    Keyword arguments:
+    size (int) -- the size of the population
+    tSize (int) -- size of the tournaments
+    mProb (float) -- probability of mutation
+    cProb (float) -- probability of crossover
+    tProb (float) -- probability of random tournament selection
+    rProb (float) -- selection pressure for rank selection
+    elite (bool) -- indicates if keeping best chromosome overall (elitism)
+    k (int) -- pool size for heuristic mutation
+    dir_ (int) -- max (-1) or min (0) based selection
+    gens (int) -- max number of generations for one problem run
+    adaptiveMod (bool) -- use adaptive modification of probabilities
+    file_ (string) -- travelling salesman representation file
+    question (string) -- string indicating which GA problem
+    selFunction (func) -- a selection function
+    mutFunction (func) -- a mutation function
+    crossFunction (func) -- a crossover function
+    query (string) -- query string for StringSearch and certain tests
+    
+    """
     self.question = question
     self.mapping =  {'Roulette' : 'rouletteSel',
                      'Linear Rank' : 'rankSel',
@@ -32,7 +96,7 @@ class GAThread(Thread):
                      'Injection' : 'injectionCrossover', 
                      'Position' : 'positionCrossover', 
                      'Recombination' : 'edgeRecombUI',
-                     'Evo Strategy' : 'getClosest',
+                     'StringSearch' : 'getClosest',
                      'True' : True,
                      'False' : False}
     self.divider=5
@@ -64,7 +128,7 @@ class GAThread(Thread):
     elif self.question == 'LeadingOnes':
       self.solver = LeadingOnes(size, tSize, mProb, cProb, tProb, rProb, elite,
                           k, dir_, gens, min_=0, max_=1, noise=1, gSize=30)
-    elif self.question == 'Evo Strategy':
+    elif self.question == 'StringSearch':
       if query == '':
         error = wx.MessageDialog(None, 'You must enter a query.',
                                'Text Error', wx.OK|wx.ICON_ERROR)
@@ -107,6 +171,7 @@ class GAThread(Thread):
     self.start()
 
   def run(self):
+    """Base thread function for GA logic processing."""
     while self.solver.gens < self.solver.MAX_GENS and self.running:
       results = self.process()
       try:
@@ -130,11 +195,24 @@ class GAThread(Thread):
     Publisher().sendMessage('Done', True)
 
   def die(self, msg):
+    """Sets an internal variable false to kill the thread."""
     self.running = False
 
 class WXGAGUI(wx.Frame):
+  """Modified frame class for the base GUI structure.
 
+  Public Methods:
+  None
+
+  """
   def __init__(self, parent, title):
+    """Sets up all the base panels for the GUI.
+
+    Keyword arguments:
+    parent (None) -- should be set to None when called
+    title (string) -- name to appear in window title bar
+
+    """
     super(WXGAGUI, self).__init__(parent, wx.ID_ANY, title, size=(1200, 700))
 
     self.InitUI()
@@ -161,11 +239,24 @@ class WXGAGUI(wx.Frame):
     self.Layout()
 
 class UI(wx.Panel):
+  """Modified panel class for the UI.
+
+  Public Methods:
+  None
+
+  """
   def __init__(self, parent):
+    """Sets up all the panels for the selection interface.
+
+    Keyword arguments:
+    parent (panel) -- panel that this panel is attached to
+
+    """
     super(UI, self).__init__(parent, wx.ID_ANY, size=(1200, 100),
                                     style=wx.RAISED_BORDER)
     self.SetBackgroundColour('Light Grey')
 
+    #For opening TSP representation file
     self.cd = os.getcwd()
     self.invalid = set(string.printable) - set(string.lowercase) - set([' '])
     self.query = ''
@@ -173,6 +264,7 @@ class UI(wx.Panel):
     hbox = wx.BoxSizer(wx.HORIZONTAL)
     fgr = wx.FlexGridSizer(3, 6, 10, 10)
 
+    #For base interface text
     questionL = wx.StaticText(self, label='Question:')
     selTypeL = wx.StaticText(self, label='Selection Type:')
     mutTypeL = wx.StaticText(self, label='Mutation Type:')
@@ -188,8 +280,9 @@ class UI(wx.Panel):
     hKL = wx.StaticText(self, label='Heuristic K:')
     dirL = wx.StaticText(self, label='Max/Min:')
     adaptiveModL = wx.StaticText(self, label='Adaptive Prob:')
-    
-    self.question = wx.ComboBox(self, choices=['Evo Strategy', 'OneMax',
+
+    #For selection widgets    
+    self.question = wx.ComboBox(self, choices=['StringSearch', 'OneMax',
                                                'SimpleMax', 'LeadingOnes',
                                                'TSP', 'Test Crossover'],
                                 style=wx.CB_READONLY)
@@ -225,6 +318,7 @@ class UI(wx.Panel):
     self.k = FS.FloatSpin(self, min_val=2, max_val=30, value=2, increment=1,
                           digits=0)
 
+    #For action buttons and event bindings
     self.openBtn = wx.Button(self, label='OPEN', size=(100, 50))
     self.openBtn.Bind(wx.EVT_BUTTON, self.Open)
     self.runBtn = wx.Button(self, label='RUN', size=(100, 50))
@@ -235,6 +329,8 @@ class UI(wx.Panel):
     self.txtEntr = wx.TextCtrl(self, size=(590, 20),
                                style=wx.TE_PROCESS_ENTER)
     self.txtEntr.Bind(wx.EVT_TEXT_ENTER, self.Enter)
+
+    #Placing all the elements
     hbox2 = wx.BoxSizer(wx.HORIZONTAL)
     hbox2.Add(self.txtEntr, 1, wx.EXPAND)
     vbox = wx.BoxSizer(wx.VERTICAL)
@@ -260,10 +356,11 @@ class UI(wx.Panel):
     Publisher().subscribe(self.Reset, 'Done')
 
   def Enter(self, event):
+    """Evaluates when Enter key is pressed in text enter box."""
     txt = event.GetClientObject()
     a = txt.GetValue()
     q = self.question.GetValue()
-    if q == 'Evo Strategy':
+    if q == 'StringSearch':
       if len(set(a) & self.invalid) > 0:
         error = wx.MessageDialog(None, 'Only lowercase letters are valid.',
                                  'Text Error', wx.OK|wx.ICON_ERROR)
@@ -284,6 +381,7 @@ class UI(wx.Panel):
     txt.Clear()
 
   def QSelect(self, event):
+    """Selects default settings for each GA Problem."""
     q = event.GetString()
     if q == 'TSP':
       self.popSize.SetValue(500)
@@ -349,7 +447,7 @@ class UI(wx.Panel):
       self.sel.SetValue('Roulette')
       self.mut.SetValue('Probability')
       self.cross.SetValue('1-Point')
-    elif q == 'Evo Strategy':
+    elif q == 'StringSearch':
       self.popSize.SetValue(500)
       self.tSize.SetValue(10)
       self.mProb.SetValue(0.1)
@@ -387,6 +485,11 @@ lowercase letters with no punctuation.""")
 by a comma.""")
 
   def Run(self, event):
+    """Sends all the selected values to the GA logic processing thread.
+
+    Disables run button after start.
+
+    """
     btn = event.GetEventObject()
     btn.Disable()
     self.thread = GAThread(int(self.popSize.GetValue()),
@@ -401,12 +504,15 @@ by a comma.""")
                            self.query)
 
   def Reset(self, event):
+    """Enables run button after problem complete or stopped."""
     self.runBtn.Enable()
 
   def Kill(self, event):
+    """Ends GA process on GAThread before completion."""
     Publisher().sendMessage('Death', True)
 
   def Open(self, event):
+    """Sets up open dialogue box for selecting TSP representation file."""
     dlg = wx.FileDialog(self, message='Choose a file', defaultDir=self.cd,
                         defaultFile='',
                         style=wx.OPEN|wx.CHANGE_DIR)
@@ -414,7 +520,19 @@ by a comma.""")
       self.file = dlg.GetPath()
 
 class TSPScreen(wx.ScrolledWindow):
+  """Modified scrolling window class for the text display.
+
+  Public Methods:
+  None
+
+  """
   def __init__(self, parent):
+    """Sets up the scrolling window for the text display.
+
+    Keyword arguments:
+    parent (panel) -- panel that this window is attached to
+
+    """
     super(TSPScreen, self).__init__(parent, wx.ID_ANY, size=(600, 600),
                                     style=wx.SUNKEN_BORDER)
 
@@ -437,12 +555,24 @@ class TSPScreen(wx.ScrolledWindow):
     Publisher().subscribe(self.PrintTSP, 'Print')
 
   def PrintTSP(self, msg):
+    """Function for printing text to this window."""
     msg = str(msg.data)
     self.text.WriteText(msg+'\n')
 
 class TSPCanvas(wx.Panel):
+  """Modified panel for drawing the TSP graphic on a canvas.
 
+  Public Methods:
+  None
+
+  """
   def __init__(self, parent):
+    """Sets up the canvas for drawing the TSP current solution.
+
+    Keyword arguments:
+    parent (panel) -- panel that this panel is attached to
+
+    """
     super(TSPCanvas, self).__init__(parent, wx.ID_ANY, size=(600, 600),
                                     style=wx.SUNKEN_BORDER)
 
@@ -462,6 +592,7 @@ class TSPCanvas(wx.Panel):
     Publisher().subscribe(self.DrawTSP, 'Draw')
 
   def InitBuffer(self):
+    """Drawing buffer that is blitted to the screen."""
     size = self.GetClientSize()
     self.buffer = wx.EmptyBitmap(size.width, size.height)
     dc = wx.BufferedDC(None, self.buffer)
@@ -471,36 +602,60 @@ class TSPCanvas(wx.Panel):
     self.reInitBuffer = False
 
   def GetLinesData(self):
+    """Convenience function that returns a copy of lines to be drawn."""
     return self.lines[:]
 
   def SetLinesData(self, lines):
+    """Sets the current line data with lines, setup buffer and blit.
+
+    Keyword arguments:
+    lines (list) -- a list of [x1, y1, x2, y2] lists
+
+    """
     self.lines = lines[:]
     self.InitBuffer()
     self.Refresh()
 
   def OnSize(self, event):
+    """Redraws the screen if the screen is resized."""
     self.reInitBuffer = True
 
   def OnIdle(self, event):
+    """Draws to the screen if nothing is happening."""
     if self.reInitBuffer:
       self.InitBuffer()
       self.Refresh(False)
 
   def OnPaint(self, event):
+    """Drawing function."""
     dc = wx.BufferedPaintDC(self, self.buffer)
 
   def DrawLines(self, dc):
+    """Drawing process."""
     if self.lines:
       for coords in self.lines:
         dc.DrawLine(*coords)
 
   def DrawTSP(self, msg):
+    """The initial function that is called to initial the draw process.
+
+    Keyword arguments:
+    msg (obj) -- Publisher object with message passing data
+
+    """
     lines = [x for x in msg.data]
     self.SetLinesData(lines)
 
 class MyApp(wx.App):
+  """Modified app for running the base GUI thread.
+
+  Public Methods:
+  MainLoop() -- starts the process
+
+  """
   def OnInit(self):
-    frame = WXGAGUI(None, 'GA TSP')
+    """Setup function."""
+    frame = WXGAGUI(None, 'GA Program')
     frame.Show(True)
     return True
 

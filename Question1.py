@@ -33,6 +33,7 @@ class StrSearch(GenericGAQ2):
   """Evolves the correct string from a random string using a GA.
 
   Only lowercase letters and spaces are valid.
+  At least 30 characters must be entered.
   Only uses mutation despite inclusion of properties for crossover.
 
   Public Methods:
