@@ -96,7 +96,7 @@ class GAThread(Thread):
                      'Injection' : 'injectionCrossover', 
                      'Position' : 'positionCrossover', 
                      'Recombination' : 'edgeRecombUI',
-                     'StringSearch' : 'getClosest',
+                     'Evo Strategy' : 'getClosest',
                      'True' : True,
                      'False' : False}
     self.divider=5
@@ -128,7 +128,7 @@ class GAThread(Thread):
     elif self.question == 'LeadingOnes':
       self.solver = LeadingOnes(size, tSize, mProb, cProb, tProb, rProb, elite,
                           k, dir_, gens, min_=0, max_=1, noise=1, gSize=30)
-    elif self.question == 'StringSearch':
+    elif self.question == 'Evo Strategy':
       if query == '':
         error = wx.MessageDialog(None, 'You must enter a query.',
                                'Text Error', wx.OK|wx.ICON_ERROR)
@@ -282,7 +282,7 @@ class UI(wx.Panel):
     adaptiveModL = wx.StaticText(self, label='Adaptive Prob:')
 
     #For selection widgets    
-    self.question = wx.ComboBox(self, choices=['StringSearch', 'OneMax',
+    self.question = wx.ComboBox(self, choices=['Evo Strategy', 'OneMax',
                                                'SimpleMax', 'LeadingOnes',
                                                'TSP', 'Test Crossover'],
                                 style=wx.CB_READONLY)
@@ -360,7 +360,7 @@ class UI(wx.Panel):
     txt = event.GetClientObject()
     a = txt.GetValue()
     q = self.question.GetValue()
-    if q == 'StringSearch':
+    if q == 'Evo Strategy':
       if len(set(a) & self.invalid) > 0:
         error = wx.MessageDialog(None, 'Only lowercase letters are valid.',
                                  'Text Error', wx.OK|wx.ICON_ERROR)
@@ -447,7 +447,7 @@ class UI(wx.Panel):
       self.sel.SetValue('Roulette')
       self.mut.SetValue('Probability')
       self.cross.SetValue('1-Point')
-    elif q == 'StringSearch':
+    elif q == 'Evo Strategy':
       self.popSize.SetValue(500)
       self.tSize.SetValue(10)
       self.mProb.SetValue(0.1)
