@@ -823,7 +823,7 @@ class AbstractGA(object):
 
         """
         pool = sample(fitProb, size)
-        pool.sort()#key=lambda fitPair: fitPair[0])
+        pool.sort()
         if random() < prob:
             return pool[dir_][1]
         else:
