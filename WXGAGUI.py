@@ -43,8 +43,7 @@ from Question1 import StrSearch
 from Question2 import OneMax, SimpleMax, LeadingOnes
 from Question3 import TSPGA
 from threading import Thread
-from wx.lib.pubsub import setuparg1
-from wx.lib.pubsub import pub
+from wx.lib.pubsub import Publisher
 
 
 class GAThread(Thread):
@@ -116,7 +115,7 @@ class GAThread(Thread):
         error = wx.MessageDialog(None, 'You must select a file.',
                                'File Error', wx.OK|wx.ICON_ERROR)
         error.ShowModal()
-        pub.sendMessage('Done', True)
+        Publisher().sendMessage('Done', True)
         return
       self.solver = TSPGA(size, tSize, mProb, cProb, tProb, rProb, elite,
                           k, dir_, gens, file_)
@@ -134,7 +133,7 @@ class GAThread(Thread):
         error = wx.MessageDialog(None, 'You must enter a query.',
                                'Text Error', wx.OK|wx.ICON_ERROR)
         error.ShowModal()
-        pub.sendMessage('Done', True)
+        Publisher().sendMessage('Done', True)
         return
       self.solver = StrSearch(size, tSize, mProb, cProb, tProb, rProb, elite,
                               k, dir_, gens, min_=0, max_=26, noise=5,
@@ -144,14 +143,14 @@ class GAThread(Thread):
       self.solver = AbstractGA()
       fn = getattr(self.solver, self.mapping[crossFunction])
       result = fn(query[0], query[1])
-      pub.sendMessage('Print', result)
-      pub.sendMessage('Done', True)
+      Publisher().sendMessage('Print', result)
+      Publisher().sendMessage('Done', True)
       return
     else:
       error = wx.MessageDialog(None, 'You must select a question.',
                                'Question Error', wx.OK|wx.ICON_ERROR)
       error.ShowModal()
-      pub.sendMessage('Done', True)
+      Publisher().sendMessage('Done', True)
       return
     self.selFunction = getattr(self.solver, self.mapping[selFunction])
     self.mutFunction = getattr(self.solver, self.mapping[mutFunction])
@@ -168,7 +167,7 @@ class GAThread(Thread):
                          self.crossFunction)
     Thread.__init__(self)
     self.running = True
-    pub.subscribe(self.die, 'Death')
+    Publisher().subscribe(self.die, 'Death')
     self.start()
 
   def run(self):
@@ -176,24 +175,24 @@ class GAThread(Thread):
     while self.solver.gens < self.solver.MAX_GENS and self.running:
       results = self.process()
       try:
-        pub.sendMessage('Draw', self.solver.prep(results[0],
+        Publisher().sendMessage('Draw', self.solver.prep(results[0],
                                                          self.divider))
       except AttributeError:
         pass
-      pub.sendMessage('Print', (results[0],
+      Publisher().sendMessage('Print', (results[0],
                                         self.solver.fitFunction(results[0]),
                                         results[1]))
-    pub.sendMessage('Print',
+    Publisher().sendMessage('Print',
                             ''.join(['....Finished....\n\n',
                                 'Best: '+str(results[0])+'\n\n',
                                 'Value: '+str(
                                     self.solver.fitFunction(results[0]))+'\n\n',
                                 'Generations: '+str(results[1])+'\n\n']))
     try:
-      pub.sendMessage('Draw', self.solver.prep(results[0], self.divider))
+      Publisher().sendMessage('Draw', self.solver.prep(results[0], self.divider))
     except AttributeError:
       pass
-    pub.sendMessage('Done', True)
+    Publisher().sendMessage('Done', True)
 
   def die(self, msg):
     """Sets an internal variable false to kill the thread."""
@@ -354,7 +353,7 @@ class UI(wx.Panel):
 
     self.question.Bind(wx.EVT_COMBOBOX, self.QSelect)
 
-    pub.subscribe(self.Reset, 'Done')
+    Publisher().subscribe(self.Reset, 'Done')
 
   def Enter(self, event):
     """Evaluates when Enter key is pressed in text enter box."""
@@ -372,13 +371,13 @@ class UI(wx.Panel):
         error.ShowModal()
       else:
         self.query = a
-        pub.sendMessage('Print', a)
+        Publisher().sendMessage('Print', a)
         #txt.SetStyle(wx.TE_READONLY)
     elif q == 'Test Crossover':
       a = a.replace(' ', '')
       b = a.split(',')
       self.query = [list(b[0]), list(b[1])]
-      pub.sendMessage('Print', self.query)
+      Publisher().sendMessage('Print', self.query)
     txt.Clear()
 
   def QSelect(self, event):
@@ -464,7 +463,7 @@ class UI(wx.Panel):
       self.sel.SetValue('Roulette')
       self.mut.SetValue('Probability')
       self.cross.SetValue('1-Point')
-      pub.sendMessage('Print', """Enter a string of at least 30 \
+      Publisher().sendMessage('Print', """Enter a string of at least 30 \
 lowercase letters with no punctuation.""")
     elif q == 'Test Crossover':
       self.popSize.SetValue(1000)
@@ -482,7 +481,7 @@ lowercase letters with no punctuation.""")
       self.sel.SetValue('Roulette')
       self.mut.SetValue('Probability')
       self.cross.SetValue('2-Point')
-      pub.sendMessage('Print', """Please enter two strings separated \
+      Publisher().sendMessage('Print', """Please enter two strings separated \
 by a comma.""")
 
   def Run(self, event):
@@ -510,7 +509,7 @@ by a comma.""")
 
   def Kill(self, event):
     """Ends GA process on GAThread before completion."""
-    pub.sendMessage('Death', True)
+    Publisher().sendMessage('Death', True)
 
   def Open(self, event):
     """Sets up open dialogue box for selecting TSP representation file."""
@@ -553,7 +552,7 @@ class TSPScreen(wx.ScrolledWindow):
 
     self.Layout()
 
-    pub.subscribe(self.PrintTSP, 'Print')
+    Publisher().subscribe(self.PrintTSP, 'Print')
 
   def PrintTSP(self, msg):
     """Function for printing text to this window."""
@@ -590,7 +589,7 @@ class TSPCanvas(wx.Panel):
 
     self.Layout()
     
-    pub.subscribe(self.DrawTSP, 'Draw')
+    Publisher().subscribe(self.DrawTSP, 'Draw')
 
   def InitBuffer(self):
     """Drawing buffer that is blitted to the screen."""
